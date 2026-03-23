@@ -25,10 +25,6 @@ type serviceCategory struct {
 	Items    []serviceItem `yaml:"items"`
 }
 
-type hiveConfig struct {
-	Services []serviceCategory `yaml:"services"`
-}
-
 // ─── Config helpers ───────────────────────────────────────────────
 
 func readFile(path string) ([]byte, error) {
@@ -42,6 +38,65 @@ func unmarshalConfig(format string, data []byte, dest interface{}) error {
 	return json.Unmarshal(data, dest)
 }
 
+// serviceSectionKeys returns the top-level config keys that hold service
+// categories. It reads the "sections" metadata (type: "services") and falls
+// back to the legacy "services" key when the metadata is absent.
+func serviceSectionKeys(raw map[string]interface{}) []string {
+	sections, ok := raw["sections"]
+	if !ok {
+		return []string{"services"}
+	}
+	list, ok := sections.([]interface{})
+	if !ok {
+		return []string{"services"}
+	}
+	var keys []string
+	for _, s := range list {
+		m, ok := s.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if m["type"] == "services" {
+			if key, ok := m["key"].(string); ok && key != "" {
+				keys = append(keys, key)
+			}
+		}
+	}
+	if len(keys) == 0 {
+		return []string{"services"}
+	}
+	return keys
+}
+
+// loadAllServiceItems parses the config and returns every service item across
+// all service sections (supports dynamic section keys like "test", "home", …).
+func loadAllServiceItems(data []byte, format string) ([]serviceItem, error) {
+	var raw map[string]interface{}
+	if err := unmarshalConfig(format, data, &raw); err != nil {
+		return nil, err
+	}
+	var items []serviceItem
+	for _, key := range serviceSectionKeys(raw) {
+		val, ok := raw[key]
+		if !ok {
+			continue
+		}
+		// Re-marshal the section value so we can unmarshal into typed structs.
+		b, err := yaml.Marshal(val)
+		if err != nil {
+			continue
+		}
+		var cats []serviceCategory
+		if err := yaml.Unmarshal(b, &cats); err != nil {
+			continue
+		}
+		for _, cat := range cats {
+			items = append(items, cat.Items...)
+		}
+	}
+	return items, nil
+}
+
 // findServiceByName loads config and returns the first service whose name
 // matches case-insensitively. Used by /probe/{name}/* endpoints.
 func findServiceByName(name string) (*serviceItem, error) {
@@ -50,17 +105,14 @@ func findServiceByName(name string) (*serviceItem, error) {
 	if err != nil {
 		return nil, err
 	}
-	var cfg hiveConfig
-	if err := unmarshalConfig(format, data, &cfg); err != nil {
+	items, err := loadAllServiceItems(data, format)
+	if err != nil {
 		return nil, err
 	}
 	nameLower := strings.ToLower(name)
-	for _, cat := range cfg.Services {
-		for i, svc := range cat.Items {
-			if strings.ToLower(svc.Name) == nameLower {
-				cp := cat.Items[i]
-				return &cp, nil
-			}
+	for i, svc := range items {
+		if strings.ToLower(svc.Name) == nameLower {
+			return &items[i], nil
 		}
 	}
 	return nil, nil
@@ -74,24 +126,20 @@ func findService(name, adapterType string) (*serviceItem, error) {
 	if err != nil {
 		return nil, err
 	}
-	var cfg hiveConfig
-	if err := unmarshalConfig(format, data, &cfg); err != nil {
+	items, err := loadAllServiceItems(data, format)
+	if err != nil {
 		return nil, err
 	}
 	var fallback *serviceItem
-	for _, cat := range cfg.Services {
-		for i, svc := range cat.Items {
-			if svc.Name != name {
-				continue
-			}
-			if svc.Adapter == adapterType {
-				cp := cat.Items[i]
-				return &cp, nil
-			}
-			if fallback == nil {
-				cp := cat.Items[i]
-				fallback = &cp
-			}
+	for i, svc := range items {
+		if svc.Name != name {
+			continue
+		}
+		if svc.Adapter == adapterType {
+			return &items[i], nil
+		}
+		if fallback == nil {
+			fallback = &items[i]
 		}
 	}
 	return fallback, nil
