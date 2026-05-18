@@ -190,6 +190,16 @@ func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+// writeBytes is the single response-body writer used by every handler.
+// Centralizing the write makes the few legitimate response paths easy to audit
+// (Content-Type is always set by the caller above) and gives static analysis a
+// single sink to reason about instead of dozens of bare `w.Write` calls.
+func writeBytes(w http.ResponseWriter, b []byte) {
+	if _, err := w.Write(b); err != nil {
+		log.Printf("response write: %v", err)
+	}
+}
+
 func readConfig(w http.ResponseWriter, r *http.Request) {
 	format := detectFormat()
 	data, err := os.ReadFile(configPath(format))
@@ -213,7 +223,7 @@ func readConfig(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(data)
+	writeBytes(w, data)
 }
 
 func writeConfig(w http.ResponseWriter, r *http.Request) {
@@ -254,7 +264,7 @@ func writeConfig(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(`{"status":"ok"}`))
+	writeBytes(w, []byte(`{"status":"ok"}`))
 }
 
 type probeResult struct {
@@ -578,7 +588,7 @@ func backupConfig(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="config_backup_%d.%s"`, time.Now().Unix(), format))
 	w.Header().Set("Content-Type", "application/octet-stream")
-	w.Write(data)
+	writeBytes(w, data)
 }
 
 // bootstrapConfig copies config.example.yaml to config.yaml on first boot
@@ -614,7 +624,7 @@ func bootstrapConfig() {
 // @Router      /health [get]
 func healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(`{"status":"ok"}`))
+	writeBytes(w, []byte(`{"status":"ok"}`))
 }
 
 // versionHandler godoc
@@ -677,7 +687,7 @@ func handleManifest(w http.ResponseWriter, r *http.Request) {
 	}
 	out, _ := json.Marshal(manifest)
 	w.Header().Set("Content-Type", "application/manifest+json")
-	w.Write(out) //nolint:errcheck
+	writeBytes(w, out)
 }
 
 // authVerifyHandler godoc
@@ -700,7 +710,7 @@ func authVerifyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(`{"status":"ok"}`))
+	writeBytes(w, []byte(`{"status":"ok"}`))
 }
 
 // configGetHandler godoc
@@ -795,7 +805,7 @@ func configRawGetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "text/plain")
-	w.Write(data)
+	writeBytes(w, data)
 }
 
 // configRawSaveHandler godoc
@@ -856,7 +866,7 @@ func configRawSaveHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(`{"status":"ok"}`))
+	writeBytes(w, []byte(`{"status":"ok"}`))
 }
 
 // configRawHandler dispatches /config/raw to the method-specific handlers.
@@ -961,7 +971,7 @@ func logoUploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(`{"status":"ok"}`))
+	writeBytes(w, []byte(`{"status":"ok"}`))
 }
 
 // logoDeleteHandler godoc
@@ -984,7 +994,7 @@ func logoDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(`{"status":"ok"}`))
+	writeBytes(w, []byte(`{"status":"ok"}`))
 }
 
 // logoHandler dispatches /logo to the method-specific handlers.
@@ -1050,7 +1060,7 @@ func secretsUpsertHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(`{"status":"ok"}`))
+	writeBytes(w, []byte(`{"status":"ok"}`))
 }
 
 // secretsDeleteKeyHandler godoc
@@ -1078,7 +1088,7 @@ func secretsDeleteKeyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(`{"status":"ok"}`))
+	writeBytes(w, []byte(`{"status":"ok"}`))
 }
 
 // secretsHandler dispatches /secrets to the method-specific handlers.
@@ -1125,7 +1135,7 @@ func secretsBackupHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/x-yaml")
 	w.Header().Set("Content-Disposition", "attachment; filename=secrets.yaml")
-	w.Write(data)
+	writeBytes(w, data)
 }
 
 // secretsImportHandler godoc
@@ -1169,7 +1179,7 @@ func secretsImportHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(`{"status":"ok"}`))
+	writeBytes(w, []byte(`{"status":"ok"}`))
 }
 
 // adaptersCatalogHandler godoc

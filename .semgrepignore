@@ -1,0 +1,10 @@
+# Documentation — wiki and READMEs contain illustrative curl examples that
+# are not real credentials.
+docs/
+
+# Auto-generated swagger docs.
+config-api/docs/
+
+# Frontend build artifacts.
+frontend/dist/
+frontend/node_modules/

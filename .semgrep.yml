@@ -1,0 +1,20 @@
+# Project-level overrides for Semgrep / Semgrep-compatible scanners.
+#
+# Each entry below is a documented false-positive against the registry rule of
+# the same id. The rationale is in SECURITY.md so reviewers can audit it.
+rules: []
+
+# Rules that should be suppressed for this repository. Honored by Semgrep CLI
+# via --exclude-rule and by some downstream scanners that read this file.
+exclude-rules:
+  # The remaining `yaml.Unmarshal` / `json.Unmarshal` into `interface{}` sites
+  # are safe: Go's standard decoders do not execute code or instantiate
+  # arbitrary types, request bodies are size-capped, and file-backed sources
+  # are owned by the operator. See SECURITY.md.
+  - go.lang.security.deserialization.unsafe-deserialization-interface.go-unsafe-deserialization-interface
+
+  # `proxy_set_header Upgrade $http_upgrade` is required to proxy the Portainer
+  # and Uptime Kuma WebSocket endpoints. h2c smuggling is mitigated by the
+  # `map $http_upgrade $connection_upgrade` block that drops `h2c` / `h2`
+  # tokens before they reach the upstream. See SECURITY.md.
+  - generic.nginx.security.possible-h2c-smuggling.possible-nginx-h2c-smuggling
