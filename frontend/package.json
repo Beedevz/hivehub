@@ -21,7 +21,7 @@
     "lucide-react": "^1.16.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
-    "zustand": "^5.0.11"
+    "zustand": "^5.0.13"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^6.0.1",
