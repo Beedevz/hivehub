@@ -1,0 +1,8 @@
+# Historical placeholder tokens in wiki docs. The blobs are from commit
+# 6c11a027 and were replaced in PR #75 (current files use $HIVE_TOKEN).
+# Format: commitHash:file:rule-id:lineNumber
+6c11a027930278815e3db8ae01e0c5e3dbfc10eb:docs/wiki/Secrets-Management.md:curl-auth-header:37
+6c11a027930278815e3db8ae01e0c5e3dbfc10eb:docs/wiki/Secrets-Management.md:curl-auth-header:46
+6c11a027930278815e3db8ae01e0c5e3dbfc10eb:docs/wiki/Secrets-Management.md:curl-auth-header:57
+6c11a027930278815e3db8ae01e0c5e3dbfc10eb:docs/wiki/Secrets-Management.md:curl-auth-header:64
+6c11a027930278815e3db8ae01e0c5e3dbfc10eb:docs/wiki/Secrets-Management.md:curl-auth-header:80
