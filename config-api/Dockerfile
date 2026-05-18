@@ -6,8 +6,8 @@ RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-X main.version=${VERSION}" -o config-api .
 
-FROM alpine:3.19
-RUN apk add --no-cache ca-certificates
+FROM alpine:3.23
+RUN apk update && apk upgrade --no-cache && apk add --no-cache ca-certificates
 WORKDIR /app
 COPY --from=builder /app/config-api .
 EXPOSE 3001
