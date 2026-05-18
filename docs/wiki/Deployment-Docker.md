@@ -11,7 +11,7 @@ services:
     image: beedevztech/hive:latest
     container_name: hive
     ports:
-      - "3000:80"
+      - "3000:8080"
     volumes:
       - ./config:/config
     env_file:
@@ -80,7 +80,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "3000:80"
+      - "3000:8080"
     volumes:
       - ./config:/config
     env_file:
@@ -109,7 +109,7 @@ services:
       - "traefik.http.routers.hive.rule=Host(`hive.example.com`)"
       - "traefik.http.routers.hive.entrypoints=websecure"
       - "traefik.http.routers.hive.tls.certresolver=letsencrypt"
-      - "traefik.http.services.hive.loadbalancer.server.port=80"
+      - "traefik.http.services.hive.loadbalancer.server.port=8080"
     restart: unless-stopped
 ```
 
@@ -121,7 +121,7 @@ server {
     server_name hive.example.com;
 
     location / {
-        proxy_pass http://hive:80;
+        proxy_pass http://hive:8080;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
     }

@@ -29,7 +29,7 @@
 ## Architecture
 
 ```
-Browser → Nginx (port 80)
+Browser → Nginx (port 8080)
                ├── /          → React SPA (Vite build)
                └── /api/      → Go API (port 3001)
                                     └── /config, /secrets,

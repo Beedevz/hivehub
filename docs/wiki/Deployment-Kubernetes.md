@@ -31,7 +31,7 @@ helm install hive hive/hive \
 
 Access via port-forward:
 ```bash
-kubectl port-forward svc/hive 3000:80
+kubectl port-forward svc/hive 3000:8080
 ```
 
 ### With Ingress

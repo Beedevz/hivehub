@@ -10,5 +10,6 @@ FROM alpine:3.23
 RUN apk update && apk upgrade --no-cache && apk add --no-cache ca-certificates
 WORKDIR /app
 COPY --from=builder /app/config-api .
+USER nobody:nobody
 EXPOSE 3001
 CMD ["./config-api"]

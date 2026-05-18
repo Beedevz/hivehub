@@ -23,7 +23,7 @@
 
 ```bash
 docker run -d \
-  -p 3000:80 \
+  -p 3000:8080 \
   -v $(pwd)/config:/config \
   -e HIVE_TOKEN=your-secret-token \
   --name hive \

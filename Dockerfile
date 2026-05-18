@@ -17,8 +17,10 @@ COPY config-api/ .
 RUN swag init --generalInfo main.go --output docs
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-X main.version=${VERSION}" -o config-api .
 
-# ── Stage 3: Final image (nginx + supervisord) ────────────────────
-FROM nginx:alpine
+# ── Stage 3: Final image (nginx + supervisord, non-root) ──────────
+# nginx-unprivileged runs as user `nginx` (uid 101) and listens on 8080 by default.
+FROM nginxinc/nginx-unprivileged:alpine
+USER root
 RUN apk update && apk upgrade --no-cache && apk add --no-cache supervisor
 
 # React build
@@ -37,5 +39,10 @@ COPY supervisord.conf /etc/supervisord.conf
 # does not hide it; bootstrapConfig() copies it to /config/config.yaml on first boot.
 COPY config/config.example.yaml /etc/hive/config.example.yaml
 
-EXPOSE 80
+# Ensure runtime-writable paths are owned by the unprivileged user.
+RUN mkdir -p /config /var/run /var/cache/nginx /var/log/nginx \
+    && chown -R nginx:nginx /config /var/run /var/cache/nginx /var/log/nginx /etc/hive
+
+USER nginx
+EXPOSE 8080
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
