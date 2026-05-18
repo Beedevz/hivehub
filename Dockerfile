@@ -7,7 +7,7 @@ COPY frontend/ .
 RUN npm run build
 
 # ── Stage 2: Build Go API ─────────────────────────────────────────
-FROM golang:1.25-alpine AS api-builder
+FROM golang:1.26-alpine AS api-builder
 ARG VERSION=dev
 WORKDIR /app
 COPY config-api/go.mod config-api/go.sum ./
@@ -19,7 +19,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-X main.version=${VERSION}" -o c
 
 # ── Stage 3: Final image (nginx + supervisord) ────────────────────
 FROM nginx:alpine
-RUN apk upgrade --no-cache && apk add --no-cache supervisor
+RUN apk update && apk upgrade --no-cache && apk add --no-cache supervisor
 
 # React build
 COPY --from=frontend-builder /app/frontend/dist /usr/share/nginx/html
