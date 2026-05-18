@@ -2,6 +2,25 @@ apiVersion: v1
 entries:
   hive:
   - apiVersion: v2
+    appVersion: v1.7.0
+    created: "2026-05-18T08:45:48.871802537Z"
+    description: A self-hosted, config-driven homelab start page
+    digest: a5f1ef9c868038dab41b218db479aab9fdc18948142e97b15d30efaaa6055357
+    home: https://github.com/beedevz/hive
+    keywords:
+    - homelab
+    - homepage
+    - dashboard
+    maintainers:
+    - name: beedevz
+    name: hive
+    sources:
+    - https://github.com/beedevz/hive
+    type: application
+    urls:
+    - https://github.com/Beedevz/hivehub/releases/download/hive-1.7.0/hive-1.7.0.tgz
+    version: 1.7.0
+  - apiVersion: v2
     appVersion: v1.6.5
     created: "2026-03-20T07:51:02.801013286Z"
     description: A self-hosted, config-driven homelab start page
@@ -134,4 +153,4 @@ entries:
     urls:
     - https://github.com/Beedevz/hive/releases/download/hive-1.5.0/hive-1.5.0.tgz
     version: 1.5.0
-generated: "2026-03-20T07:51:02.801047239Z"
+generated: "2026-05-18T08:45:48.871836538Z"
