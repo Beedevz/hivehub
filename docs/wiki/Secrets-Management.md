@@ -35,7 +35,7 @@ Use the Secrets API to store credentials without putting them in `.env`.
 
 ```bash
 curl -X PUT http://hive.local/api/secrets \
-  -H "X-Hive-Token: your-token" \
+  -H "X-Hive-Token: $HIVE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"key": "PORTAINER_TOKEN", "value": "ptr_xyz123"}'
 ```
@@ -44,7 +44,7 @@ curl -X PUT http://hive.local/api/secrets \
 
 ```bash
 curl http://hive.local/api/secrets \
-  -H "X-Hive-Token: your-token"
+  -H "X-Hive-Token: $HIVE_TOKEN"
 ```
 
 ```json
@@ -55,14 +55,14 @@ curl http://hive.local/api/secrets \
 
 ```bash
 curl -X DELETE "http://hive.local/api/secrets?key=PORTAINER_TOKEN" \
-  -H "X-Hive-Token: your-token"
+  -H "X-Hive-Token: $HIVE_TOKEN"
 ```
 
 ### Import from YAML
 
 ```bash
 curl -X POST http://hive.local/api/secrets/import \
-  -H "X-Hive-Token: your-token" \
+  -H "X-Hive-Token: $HIVE_TOKEN" \
   -H "Content-Type: application/yaml" \
   --data-binary @secrets.yaml
 ```
@@ -78,7 +78,7 @@ JELLYFIN_TOKEN: xyz789
 
 ```bash
 curl http://hive.local/api/secrets/backup \
-  -H "X-Hive-Token: your-token" \
+  -H "X-Hive-Token: $HIVE_TOKEN" \
   -o secrets-backup.yaml
 ```
 
