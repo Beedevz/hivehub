@@ -1,0 +1,13 @@
+# Gitleaks configuration. Extends the default rule set.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Historical commits whose 'secrets' were placeholder values in documentation"
+
+# 6c11a027 introduced the GitHub Wiki pages with curl examples like
+# `-H "X-Hive-Token: your-token"`. The current docs use `$HIVE_TOKEN` instead
+# (see PR #75), but the historical blob still trips the curl-auth-header rule.
+commits = [
+  "6c11a027930278815e3db8ae01e0c5e3dbfc10eb",
+]
