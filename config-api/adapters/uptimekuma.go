@@ -22,7 +22,10 @@ func fetchUptimeKumaStats(cfg map[string]interface{}, baseURL string) AdapterRes
 	client := &http.Client{
 		Timeout: 15 * time.Second,
 		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: false}, //nolint:gosec
+			TLSClientConfig: &tls.Config{
+				MinVersion:         tls.VersionTLS12,
+				InsecureSkipVerify: false,
+			},
 		},
 	}
 

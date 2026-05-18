@@ -44,6 +44,10 @@ import (
 const configDir = "/config"
 const secretsFile = "/config/secrets.yaml"
 
+// maxConfigBodyBytes caps the size of request bodies for /config and /config/raw
+// to bound parsing cost (defense against arbitrarily large YAML/JSON payloads).
+const maxConfigBodyBytes = 10 << 20 // 10 MiB
+
 // loadSecrets reads secrets.yaml and returns a key→value map.
 // Returns an empty map if the file does not exist or cannot be parsed.
 func loadSecrets() map[string]string {
@@ -174,6 +178,10 @@ func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, PUT, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Hive-Token")
+		// Defense-in-depth: prevent browsers from MIME-sniffing responses, which mitigates
+		// reflected-XSS vectors when responses serve user-influenced bytes with a non-HTML
+		// Content-Type (e.g. JSON, YAML, octet-stream).
+		w.Header().Set("X-Content-Type-Options", "nosniff")
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(204)
 			return
@@ -191,7 +199,9 @@ func readConfig(w http.ResponseWriter, r *http.Request) {
 	}
 	if format == "yaml" {
 		var parsed interface{}
-		if err := yaml.Unmarshal(data, &parsed); err != nil {
+		// Data is read from a local config file under our control, not user-supplied;
+		// gopkg.in/yaml.v3 does not execute code or instantiate arbitrary types.
+		if err := yaml.Unmarshal(data, &parsed); err != nil { //nosemgrep: go.lang.security.deserialization.unsafe-deserialization-interface.go-unsafe-deserialization-interface
 			http.Error(w, "YAML parse error: "+err.Error(), 500)
 			return
 		}
@@ -207,13 +217,16 @@ func readConfig(w http.ResponseWriter, r *http.Request) {
 }
 
 func writeConfig(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, maxConfigBodyBytes)
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Read error", 400)
 		return
 	}
 	var parsed interface{}
-	if err := json.Unmarshal(body, &parsed); err != nil {
+	// json.Unmarshal in Go does not execute arbitrary code or instantiate
+	// unknown types; the body size is capped above to bound resource use.
+	if err := json.Unmarshal(body, &parsed); err != nil { //nosemgrep: go.lang.security.deserialization.unsafe-deserialization-interface.go-unsafe-deserialization-interface
 		http.Error(w, "Invalid JSON: "+err.Error(), 400)
 		return
 	}
@@ -276,7 +289,10 @@ func probeClient() *http.Client {
 	return &http.Client{
 		Timeout: 3 * time.Second,
 		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: insecureTLS}, //nolint:gosec
+			TLSClientConfig: &tls.Config{
+				MinVersion:         tls.VersionTLS12,
+				InsecureSkipVerify: insecureTLS, //nolint:gosec
+			},
 		},
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			if len(via) >= 5 {
@@ -799,18 +815,21 @@ func configRawSaveHandler(w http.ResponseWriter, r *http.Request) {
 	if !requireAuth(w, r) {
 		return
 	}
+	r.Body = http.MaxBytesReader(w, r.Body, maxConfigBodyBytes)
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Read error", 400)
 		return
 	}
-	// Parse raw YAML or JSON into a generic value to validate it
+	// Parse raw YAML or JSON into a generic value to validate it.
+	// Neither encoding/json nor gopkg.in/yaml.v3 execute code or instantiate
+	// arbitrary types during Unmarshal, and the body is size-capped above.
 	var parsed interface{}
 	ct := r.Header.Get("Content-Type")
 	if strings.Contains(ct, "json") {
-		err = json.Unmarshal(body, &parsed)
+		err = json.Unmarshal(body, &parsed) //nosemgrep: go.lang.security.deserialization.unsafe-deserialization-interface.go-unsafe-deserialization-interface
 	} else {
-		err = yaml.Unmarshal(body, &parsed)
+		err = yaml.Unmarshal(body, &parsed) //nosemgrep: go.lang.security.deserialization.unsafe-deserialization-interface.go-unsafe-deserialization-interface
 	}
 	if err != nil {
 		http.Error(w, "Parse error: "+err.Error(), 400)
@@ -1191,5 +1210,12 @@ func main() {
 	mux.HandleFunc("/swagger/", httpSwagger.WrapHandler)
 
 	log.Printf("config-api listening on :%s", port)
-	log.Fatal(http.ListenAndServe(":"+port, mux))
+	srv := &http.Server{
+		Addr:              ":" + port,
+		Handler:           mux,
+		ReadHeaderTimeout: 10 * time.Second,
+	}
+	// TLS is terminated at the nginx reverse proxy in front of this service;
+	// the API binds to plain HTTP only on the internal docker network.
+	log.Fatal(srv.ListenAndServe()) //nosemgrep: go.lang.security.audit.net.use-tls.use-tls
 }

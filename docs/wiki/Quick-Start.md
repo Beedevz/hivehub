@@ -49,7 +49,7 @@ services:
   hive:
     image: beedevztech/hive:latest
     ports:
-      - "3000:80"
+      - "3000:8080"
     volumes:
       - ./config:/config
     env_file:
